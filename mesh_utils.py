@@ -122,7 +122,7 @@ def clean_mesh(
 
     if min_d > 0:
         ms.meshing_remove_connected_component_by_diameter(
-            mincomponentdiag=pml.PercentageValueValue(min_d)
+            mincomponentdiag=pml.PercentageValue(min_d)
         )
 
     if min_f > 0:
