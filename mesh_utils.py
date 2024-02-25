@@ -6,7 +6,6 @@ if PML_VER == '2022.2.post3':
     pml.PercentageValue = pml.Percentage
     pml.PureValue = pml.AbsoluteValue
 
-
 def poisson_mesh_reconstruction(points, normals=None):
     # points/normals: [N, 3] np.ndarray
 
@@ -53,7 +52,17 @@ def decimate_mesh(
 
     _ori_vert_shape = verts.shape
     _ori_face_shape = faces.shape
-	@@ -62,19 +68,20 @@ def decimate_mesh(
+
+    if backend == "pyfqmr":
+        import pyfqmr
+
+        solver = pyfqmr.Simplify()
+        solver.setMesh(verts, faces)
+        solver.simplify_mesh(target_count=target, preserve_border=False, verbose=False)
+        verts, faces, normals = solver.getMesh()
+    else:
+        m = pml.Mesh(verts, faces)
+        ms = pml.MeshSet()
         ms.add_mesh(m, "mesh")  # will copy!
 
         # filters
@@ -73,7 +82,19 @@ def decimate_mesh(
         verts = m.vertex_matrix()
         faces = m.face_matrix()
 
-	@@ -94,7 +101,24 @@ def clean_mesh(
+    print(
+        f"[INFO] mesh decimation: {_ori_vert_shape} --> {verts.shape}, {_ori_face_shape} --> {faces.shape}"
+    )
+
+    return verts, faces
+
+
+def clean_mesh(
+    verts,
+    faces,
+    v_pct=1,
+    min_f=64,
+    min_d=20,
     repair=True,
     remesh=True,
     remesh_size=0.01,
@@ -81,7 +102,15 @@ def decimate_mesh(
     # verts: [N, 3]
     # faces: [N, 3]
 
-	@@ -110,15 +134,15 @@ def clean_mesh(
+    _ori_vert_shape = verts.shape
+    _ori_face_shape = faces.shape
+
+    m = pml.Mesh(verts, faces)
+    ms = pml.MeshSet()
+    ms.add_mesh(m, "mesh")  # will copy!
+
+    # filters
+    ms.meshing_remove_unreferenced_vertices()  # verts not refed by any faces
 
     if v_pct > 0:
         ms.meshing_merge_close_vertices(
@@ -97,7 +126,13 @@ def decimate_mesh(
         )
 
     if min_f > 0:
-	@@ -132,11 +156,12 @@ def clean_mesh(
+        ms.meshing_remove_connected_component_by_face_number(mincomponentsize=min_f)
+
+    if repair:
+        # ms.meshing_remove_t_vertices(method=0, threshold=40, repeat=True)
+        ms.meshing_repair_non_manifold_edges(method=0)
+        ms.meshing_repair_non_manifold_vertices(vertdispratio=0)
+
     if remesh:
         # ms.apply_coord_taubin_smoothing()
         ms.meshing_isotropic_explicit_remeshing(
@@ -109,7 +144,8 @@ def decimate_mesh(
     verts = m.vertex_matrix()
     faces = m.face_matrix()
 
-	@@ -145,3 +170,129 @@ def clean_mesh(
+    print(
+        f"[INFO] mesh cleaning: {_ori_vert_shape} --> {verts.shape}, {_ori_face_shape} --> {faces.shape}"
     )
 
     return verts, faces
