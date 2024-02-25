@@ -136,7 +136,7 @@ def clean_mesh(
     if remesh:
         # ms.apply_coord_taubin_smoothing()
         ms.meshing_isotropic_explicit_remeshing(
-            iterations=3, targetlen=pml.AbsoluteValue(remesh_size)
+            iterations=3, targetlen=pml.PureValue(remesh_size)
         )
 
     # extract mesh
